@@ -1,0 +1,1 @@
+# gtsummary-translation-gif
