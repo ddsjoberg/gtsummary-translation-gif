@@ -14,7 +14,9 @@ translate <- function(language, id) {
 
 df_results <-
   tibble(
+    # list all languages to create figures for
     language = names(translations) %>% setdiff("id"),
+    # transform the underlying data into that language
     data = map(
       language,
       ~trial %>%
@@ -23,25 +25,25 @@ df_results <-
           trt = case_when(
             trt == "Drug A" ~ translate(.x, "Drug A"),
             trt == "Drug B" ~ translate(.x, "Drug B")
-          ),
-          grade = case_when(
-            grade == "I" ~ translate(.x, "I"),
-            grade == "II" ~ translate(.x, "II"),
-            grade == "III" ~ translate(.x, "III"),
-          ) %>% factor(levels = filter(translations, id %in% c("I", "II", "III"))[[.x]])
+          )
         )
     ),
+    # create the tbl_summary object and save it
     tbl_summary = map2(
       language, data,
       function(language, data) {
+        # SET THE LANGUAGE THEME
         theme_gtsummary_language(language)
-        tbl <- tbl_summary(
-          data,
-          by = trt,
-          label = list(age = translate(language, "Age"),
-                       grade = translate(language, "Grade"))
-        ) %>%
+        tbl <-
+          # build gtsummary table
+          tbl_summary(
+            data,
+            by = trt,
+            label = list(age = translate(language, "Age"),
+                         grade = translate(language, "Grade"))
+          ) %>%
           add_p() %>%
+          # convert to gt and add the language title and flag
           as_gt() %>%
           tab_header(
             title = html(
@@ -55,6 +57,7 @@ df_results <-
               )
             )
           ) %>%
+          # set common widths so the GIF looks cute!
           cols_width(
             vars(label) ~ px(170),
             starts_with("stat_") ~ px(230),
@@ -63,12 +66,11 @@ df_results <-
           )
         reset_gtsummary_theme()
 
+        # write the table to disk
         gtsave(tbl, filename = glue::glue("tbl_summary-{language}.png"))
         tbl
       }
     )
   )
-
-df_results$tbl_summary[[1]]
 
 # make the gif at https://ezgif.com/maker
